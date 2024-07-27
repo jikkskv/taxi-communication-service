@@ -20,12 +20,7 @@ public class InMemoryBookingMessageConsumer implements MessageConsumer {
     private InMemoryMessageQueueService messageQueueService;
 
     @Autowired
-    private LocationUpdateService locationUpdateService;
-
-    @Autowired
     private DriverObservable driverObservable;
-
-    private static final ObjectMapper mapper = new ObjectMapper();
 
     @Override
     @Scheduled(fixedRate = 1000)

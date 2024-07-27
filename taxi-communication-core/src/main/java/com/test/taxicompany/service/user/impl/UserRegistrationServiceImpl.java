@@ -10,6 +10,7 @@ import com.test.taxicompany.user.Driver;
 import com.test.taxicompany.user.RegistrationType;
 import com.test.taxicompany.user.VehicleType;
 import com.test.taxicompany.utils.ValidationUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class UserRegistrationServiceImpl implements UserRegistrationService {
 
     @Autowired
@@ -34,15 +36,20 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
 
     @Override
     public Long registerDriver(DriverRegisterRequest driverRegisterRequest) {
-        validateDriverRequest(driverRegisterRequest);
-        Driver driver = getDriver(driverRegisterRequest);
-        Driver savedDriver = driverRepository.saveAndFlush(driver);
-        Long driverId = savedDriver.getId();
-        driver.setId(driverId);
-        if (driverId >= 0) {
-            driverObservable.addObserver(new DriverObserver(driver, simpMessagingTemplate));
+        try {
+            validateDriverRequest(driverRegisterRequest);
+            Driver driver = getDriver(driverRegisterRequest);
+            Driver savedDriver = driverRepository.saveAndFlush(driver);
+            Long driverId = savedDriver.getId();
+            driver.setId(driverId);
+            if (driverId >= 0) {
+                driverObservable.addObserver(new DriverObserver(driver, simpMessagingTemplate));
+                return driverId;
+            }
+        } catch (Exception ex){
+            log.error("Error occurred in registerDriver for driverRegisterRequest: {}", driverRegisterRequest, ex);
         }
-        return driverId;
+        return -1L;
     }
 
     @Override
