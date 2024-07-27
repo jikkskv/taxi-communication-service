@@ -11,7 +11,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.Collections;
@@ -38,7 +37,7 @@ class UserRegistrationServiceImplTest {
 
     @Test
     void registerDriver_invalidEmailId() {
-        DriverRegisterRequest registerRequest = new DriverRegisterRequest("name", "email","password", "12345678", "licenseNumber",
+        DriverRegisterRequest registerRequest = new DriverRegisterRequest("name", "email", "password", "12345678", "licenseNumber",
                 "vehicleNumber", "vehicleType", 1D);
         assertEquals(-1L, userRegistrationService.registerDriver(registerRequest));
         verify(this.driverRepository, times(0)).saveAndFlush(any(Driver.class));
@@ -47,7 +46,7 @@ class UserRegistrationServiceImplTest {
 
     @Test
     void registerDriver_validDriverRegisterRequest() {
-        DriverRegisterRequest registerRequest = new DriverRegisterRequest("name", "email@xyz.com","password", "12345678", "licenseNumber",
+        DriverRegisterRequest registerRequest = new DriverRegisterRequest("name", "email@xyz.com", "password", "12345678", "licenseNumber",
                 "vehicleNumber", "vehicleType", 1D);
         Driver driver = new Driver();
         driver.setId(123456L);
@@ -58,7 +57,7 @@ class UserRegistrationServiceImplTest {
 
     @Test
     void registerDriver_saveFailed() {
-        DriverRegisterRequest registerRequest = new DriverRegisterRequest("name", "email@xyz.com","password", "12345678", "licenseNumber",
+        DriverRegisterRequest registerRequest = new DriverRegisterRequest("name", "email@xyz.com", "password", "12345678", "licenseNumber",
                 "vehicleNumber", "vehicleType", 1D);
         Driver driver = new Driver();
         driver.setId(-1L);

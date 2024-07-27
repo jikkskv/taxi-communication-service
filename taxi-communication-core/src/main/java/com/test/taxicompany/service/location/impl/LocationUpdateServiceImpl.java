@@ -19,7 +19,7 @@ public class LocationUpdateServiceImpl implements LocationUpdateService {
 
     @Override
     public void updateDriverLocation(LocationInfo locationInfo) {
-        if(Objects.nonNull(locationInfo)) {
+        if (Objects.nonNull(locationInfo)) {
             Driver driver = driverObservable.getDriver(locationInfo.id());
             if (Objects.nonNull(driver)) {
                 driver.getCoOrdinate().setLatitude(locationInfo.latitude());

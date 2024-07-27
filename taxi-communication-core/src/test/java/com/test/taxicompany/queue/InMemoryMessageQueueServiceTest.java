@@ -9,7 +9,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InMemoryMessageQueueServiceTest {
@@ -38,7 +38,7 @@ class InMemoryMessageQueueServiceTest {
         ExecutorService rcvMessagePool = Executors.newFixedThreadPool(10);
         rcvMessagePool.submit(() -> {
             while (true) {
-                if(messageQueueService.hasMessages(MessageQueueService.BOOKING_TOPIC)) {
+                if (messageQueueService.hasMessages(MessageQueueService.BOOKING_TOPIC)) {
                     msgRcvdSet.add(messageQueueService.receiveMessage(MessageQueueService.BOOKING_TOPIC));
                 }
             }

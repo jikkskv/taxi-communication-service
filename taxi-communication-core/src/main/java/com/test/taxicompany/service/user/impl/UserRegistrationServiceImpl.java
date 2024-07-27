@@ -46,7 +46,7 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
                 driverObservable.addObserver(new DriverObserver(driver, simpMessagingTemplate));
                 return driverId;
             }
-        } catch (Exception ex){
+        } catch (Exception ex) {
             log.error("Error occurred in registerDriver for driverRegisterRequest: {}", driverRegisterRequest, ex);
         }
         return -1L;

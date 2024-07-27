@@ -1,10 +1,8 @@
 package com.test.taxicompany.queue.consumer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.test.taxicompany.observer.DriverObservable;
 import com.test.taxicompany.queue.InMemoryMessageQueueService;
 import com.test.taxicompany.queue.MessageQueueService;
-import com.test.taxicompany.service.location.LocationUpdateService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;

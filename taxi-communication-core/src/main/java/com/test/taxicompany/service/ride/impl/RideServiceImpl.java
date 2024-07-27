@@ -11,6 +11,8 @@ import com.test.taxicompany.repo.DriverRideRelationRepository;
 import com.test.taxicompany.repo.RideOrderRepository;
 import com.test.taxicompany.ride.RideOrder;
 import com.test.taxicompany.ride.RideStatus;
+import com.test.taxicompany.ridestate.RideContext;
+import com.test.taxicompany.ridestate.RideContextHelper;
 import com.test.taxicompany.service.ride.RideService;
 import com.test.taxicompany.user.AvailabilityStatus;
 import com.test.taxicompany.user.Driver;
@@ -53,12 +55,17 @@ public class RideServiceImpl implements RideService {
     @Autowired
     private DriverRideRelationRepository driverRideRelationRepository;
 
+    @Autowired
+    private RideContextHelper rideContextHelper;
+
     @Override
     public boolean requestRide(RideRequest rideRequest) {
         try {
             Map<String, RideOrder> bookingMessage = new HashMap<>();
             RideOrder rideOrder = getRideOrder(rideRequest);
-            RideOrder savedRideOrder = this.rideOrderRepository.save(rideOrder);
+            RideContext rideContext = rideContextHelper.getRideContext(RideStatus.AVAILABLE, rideOrder);
+            rideContext.handleNewState();
+            RideOrder savedRideOrder = rideContext.getRideOrder();
             bookingMessage.put("bookingRequest", savedRideOrder);
             this.messageQueueService.sendMessage(MessageQueueService.BOOKING_TOPIC, mapper.writeValueAsString(bookingMessage));
             return true;
@@ -70,15 +77,6 @@ public class RideServiceImpl implements RideService {
             log.error("General error occurred in processing rideRequest: {}", rideRequest, ex);
         }
         return false;
-    }
-
-    private RideOrder getRideOrder(RideRequest rideRequest) {
-        RideOrder order = new RideOrder();
-        order.setPickupTime(rideRequest.pickupTime());
-        order.setSource(rideRequest.source());
-        order.setDestination(rideRequest.destination());
-        order.setRideStatus(RideStatus.AVAILABLE);
-        return order;
     }
 
     @Override
@@ -93,15 +91,69 @@ public class RideServiceImpl implements RideService {
             if (!RideStatus.AVAILABLE.equals(rideOrder.getRideStatus())) {
                 throw new RuntimeException("Ride request already accepted or cancelled");
             }
-            rideOrder.setRideStatus(RideStatus.BOOKED);
+            RideContext rideContext = rideContextHelper.getRideContext(RideStatus.ACCEPTED, rideOrder);
+            rideContext.handleNewState();
             driver.setAvailabilityStatus(AvailabilityStatus.ON_CALL);
             DriverRideRelation relation = getDriverRideRelation(rideOrder, driver);
             driverRideRelationRepository.save(relation);
             driverRepository.save(driver);
-            rideOrderRepository.save(rideOrder);
             return true;
         } catch (RuntimeException ex) {
             log.error("Error occurred in accepting rideRequest for rideId: {}, and for driverId: {}", rideId, driverId, ex);
+        }
+        return false;
+    }
+
+    @Override
+    public boolean startRide(long rideId, long driverId) {
+        try {
+            RideOrder rideOrder = rideOrderRepository.findById(rideId)
+                    .orElseThrow(() -> new RuntimeException("Ride not found"));
+            ;
+
+            if (!RideStatus.ACCEPTED.equals(rideOrder.getRideStatus())) {
+                throw new RuntimeException("Ride request not yet accepted.");
+            }
+            RideContext rideContext = rideContextHelper.getRideContext(RideStatus.IN_PROGRESS, rideOrder);
+            rideContext.handleNewState();
+            return true;
+        } catch (RuntimeException ex) {
+            log.error("Error occurred in accepting rideRequest for rideId: {}, and for driverId: {}", rideId, driverId, ex);
+        }
+        return false;
+    }
+
+    @Override
+    public boolean completeRide(long rideId, long driverId) {
+        try {
+            RideOrder rideOrder = rideOrderRepository.findById(rideId)
+                    .orElseThrow(() -> new RuntimeException("Ride not found"));
+            ;
+
+            if (!RideStatus.IN_PROGRESS.equals(rideOrder.getRideStatus())) {
+                throw new RuntimeException("Ride request not in progress state");
+            }
+            RideContext rideContext = rideContextHelper.getRideContext(RideStatus.COMPLETED, rideOrder);
+            rideContext.handleNewState();
+            return true;
+        } catch (RuntimeException ex) {
+            log.error("Error occurred in accepting rideRequest for rideId: {}, and for driverId: {}", rideId, driverId, ex);
+        }
+        return false;
+    }
+
+    @Override
+    public boolean cancelRide(long rideId) {
+        try {
+            RideOrder rideOrder = rideOrderRepository.findById(rideId)
+                    .orElseThrow(() -> new RuntimeException("Ride not found"));
+            ;
+
+            RideContext rideContext = rideContextHelper.getRideContext(RideStatus.CANCELLED, rideOrder);
+            rideContext.handleNewState();
+            return true;
+        } catch (RuntimeException ex) {
+            log.error("Error occurred in accepting rideRequest for rideId: {}", rideId, ex);
         }
         return false;
     }
@@ -134,5 +186,14 @@ public class RideServiceImpl implements RideService {
         driverRideRelation.setDriver(driver);
         driverRideRelation.setAssignedAt(LocalDateTime.now());
         return driverRideRelation;
+    }
+
+    private RideOrder getRideOrder(RideRequest rideRequest) {
+        RideOrder order = new RideOrder();
+        order.setPickupTime(rideRequest.pickupTime());
+        order.setSource(rideRequest.source());
+        order.setDestination(rideRequest.destination());
+        order.setRideStatus(RideStatus.AVAILABLE);
+        return order;
     }
 }

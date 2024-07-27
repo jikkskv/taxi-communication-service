@@ -2,18 +2,18 @@ package com.test.taxicompany.service.location.impl;
 
 import com.test.taxicompany.dto.LocationInfo;
 import com.test.taxicompany.observer.DriverObservable;
-import com.test.taxicompany.service.location.LocationUpdateService;
 import com.test.taxicompany.user.Driver;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.when;
 
 @Slf4j
 @ExtendWith(MockitoExtension.class)
