@@ -34,4 +34,6 @@ public class RideOrder {
     @Enumerated(EnumType.STRING)
     @Column(name = "ride_status", nullable = false)
     private RideStatus rideStatus;
+
+    private double price = 10.10;
 }

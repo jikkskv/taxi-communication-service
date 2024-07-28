@@ -18,6 +18,8 @@ public class Driver extends User {
     @Column(name = "vehicle_type", nullable = false)
     private VehicleType vehicleType;
 
+    private String vehicleNumber;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "JSON")
     private DriverLicense driverLicenseInfo;

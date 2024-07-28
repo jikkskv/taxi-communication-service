@@ -4,5 +4,6 @@ public enum RideStatus {
     AVAILABLE,
     BOOKED,
     IN_PROGRESS,
-    COMPLETED
+    COMPLETED,
+    CANCELLED
 }

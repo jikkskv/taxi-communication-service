@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Taxi Fleet Admin Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+<h1>XYZ Taxi Fleet Company</h1>
+<div class="container">
+    <h3>Driver List</h3>
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone No</th>
+            <th>Vehicle Type</th>
+            <th>Vehicle No</th>
+            <th>License No</th>
+            <th>Current Location</th>
+            <th>Available Status</th>
+        </tr>
+        </thead>
+        <tbody id="driver-list">
+        <!-- Driver rows will be inserted here -->
+        </tbody>
+    </table>
+</div>
+
+<div class="container">
+    <h3>Booking Page</h3>
+    <table>
+        <thead>
+        <tr>
+            <th>Driver Id</th>
+            <th>Ride Id</th>
+            <th>Driver Name</th>
+            <th>Vehicle Type</th>
+            <th>Vehicle No</th>
+            <th>Source</th>
+            <th>Destination</th>
+            <th>Price</th>
+            <th>Ride Status</th>
+        </tr>
+        </thead>
+        <tbody id="booking-list">
+        <!-- Driver rows will be inserted here -->
+        </tbody>
+    </table>
+</div>
+<script>
+    var contextPath = '/taxi-communication-service';
+    async function fetchDrivers() {
+        try {
+            const response = await fetch('http://localhost:8080'+contextPath+'/user/driver');
+            const drivers = await response.json();
+            const driverList = document.getElementById('driver-list');
+
+            drivers.forEach(driver => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${driver.id}</td>
+                    <td>${driver.name}</td>
+                    <td>${driver.emailId}</td>
+                    <td>${driver.phoneNo}</td>
+                    <td>${driver.vehicleType}</td>
+                    <td>${driver.vehicleNumber}</td>
+                    <td>${driver.driverLicenseInfo.licenseNo}</td>
+                    <td>${driver.coOrdinate.longitude}, ${driver.coOrdinate.latitude}</td>
+                    <td>${driver.availabilityStatus}</td>
+                `;
+                driverList.appendChild(row);
+            });
+        } catch (error) {
+            console.error('Error fetching driver data:', error);
+        }
+    }
+
+    async function fetchBooking() {
+        try {
+            const response = await fetch('http://localhost:8080'+contextPath+'/ride/booking');
+            const allBookings = await response.json();
+            const bookingList = document.getElementById('booking-list');
+
+            allBookings.forEach(booking => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${booking.driverId}</td>
+                    <td>${booking.rideId}</td>
+                    <td>${booking.driverName}</td>
+                    <td>${booking.vehicleType}</td>
+                    <td>${booking.vehicleNumber}</td>
+                    <td>${booking.source.longitude}, ${booking.source.latitude}</td>
+                    <td>${booking.destination.longitude}, ${booking.destination.latitude}</td>
+                    <td>${booking.price} SGD</td>
+                    <td>${booking.rideStatus}</td>
+                `;
+                bookingList.appendChild(row);
+            });
+        } catch (error) {
+            console.error('Error fetching booking data:', error);
+        }
+    }
+    window.onload = async function() {
+        try {
+            // Call both async methods concurrently
+            await Promise.all([fetchDrivers(), fetchBooking()]);
+        } catch (error) {
+            console.error('Error during window.onload:', error);
+        }
+    };
+</script>
+</body>
+</html>

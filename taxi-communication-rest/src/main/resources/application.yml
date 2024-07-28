@@ -1,0 +1,31 @@
+logging:
+  level:
+    com.test.taxicompany: INFO
+
+server:
+  servlet:
+    contextPath: /taxi-communication-service
+
+spring:
+  application:
+    name: taxi-communication-service
+  datasource:
+    url: jdbc:h2:mem:testdb
+    username: sa
+    password: password
+    driverClassName: org.h2.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: true
+    properties.hibernate.id.new_generator_mappings: false
+    hibernate:
+      ddl-auto: update
+  h2:
+    console:
+      path: /h2-console
+      settings.trace: false
+      settings.web-allow-others: false
+      enabled: true
+  sql:
+    init:
+      mode: always

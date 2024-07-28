@@ -155,7 +155,6 @@ public class RideServiceImpl implements RideService {
         try {
             RideOrder rideOrder = rideOrderRepository.findById(rideId)
                     .orElseThrow(() -> new RuntimeException("Ride not found"));
-            ;
 
             RideContext rideContext = rideContextHelper.getRideContext(RideStatus.CANCELLED, rideOrder);
             rideContext.handleNewState();
@@ -176,7 +175,7 @@ public class RideServiceImpl implements RideService {
         return rideRelations.stream().map(e -> {
             Driver driver = e.getDriver();
             RideOrder rideOrder = e.getRideOrder();
-            DriverRideInfo rideInfo = new DriverRideInfo(
+            return new DriverRideInfo(
                     driver.getId(),
                     rideOrder.getId(),
                     driver.getName(),
@@ -187,7 +186,6 @@ public class RideServiceImpl implements RideService {
                     rideOrder.getRideStatus().toString(),
                     rideOrder.getPrice()
             );
-            return rideInfo;
         }).collect(Collectors.toList());
     }
 

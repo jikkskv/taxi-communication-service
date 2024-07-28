@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Client for Taxi Driver</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.4.0/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/styles.css">
+</head>
+<body onload="disconnect()">
+<div class="container" id="externalBox">
+    <h1>XYZ Taxi Fleet Company</h1>
+    <p>
+        <b>Note:</b> This page will act like a software agent(client) for driver and Customer. Driver can do
+        registration, send live location to server and can accept new booking request. Customer can request new booking
+        request.
+    </p>
+    <form id="driverRegistrationForm">
+        <h4>Driver Registration</h4>
+        <label for="name">Full Name:</label>
+        <input type="text" id="name" name="name" required>
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+        <label for="phone">Phone Number:</label>
+        <input type="tel" id="phone" name="phone" required>
+        <label for="licenseNo">License Number:</label>
+        <input type="text" id="licenseNo" name="licenseNumber" required>
+        <label for="vehicleType">Vehicle Type:</label>
+        <select id="vehicleType" name="vehicleType" required>
+            <option value="">Select Vehicle Type</option>
+            <option value="4Seater">4-seater</option>
+            <option value="4SeaterWithKids">4-seater with kids</option>
+            <option value="6Seater">6-seater</option>
+        </select>
+        <label for="vehicleNumber">Vehicle Number:</label>
+        <input type="text" id="vehicleNumber" name="vehicleNumber" required>
+        <label for="experience">Years of Experience:</label>
+        <input type="number" id="experience" name="experience" required>
+        <button type="submit">Register</button>
+    </form>
+    <div>
+        <button id="connect" onclick="connect();">Set status as Available</button>
+        <br><br><br>
+        <button id="disconnect" onclick="disconnect();">Set status as Off-Work</button>
+    </div>
+    <div id="location-form">
+        <h4>Send Location</h4>
+        <input checked id="liveLocation" name="locationType" onClick="sendLiveLocation();" type="radio" value="live">
+        <label for="liveLocation">Live Location</label>
+        <input id="manualLocation" name="locationType" type="radio" value="manual">
+        <label for="manualLocation">Manual Location(For Testing)</label>
+        <form id="locationForm">
+            <label for="latitude">Latitude:</label>
+            <input id="latitude" required step="any" type="number">
+            <label for="longitude">Longitude:</label>
+            <input id="longitude" required step="any" type="number">
+            <button id="sendManualLocation">Send Manual Location(For Testing)</button>
+        </form>
+    </div>
+</div>
+<script>
+    var stompClient = null;
+    var driverId = null;
+    var contextPath = '/taxi-communication-service';
+    let locationInterval;
+
+    function connect() {
+      var socket = new SockJS(contextPath+'/ws');
+      stompClient = Stomp.over(socket);
+      stompClient.connect({}, function(frame) {
+        console.log('Connected: ' + frame);
+        setConnected(true);
+        var privateSocketName = '/user/' + driverId + '/private/driver/message';
+        stompClient.subscribe(privateSocketName, function(privateMessage) {
+          var privateMessage = JSON.parse(privateMessage.body);
+          console.log('privateMessage: ' + privateMessage);
+          if ('bookingRequest' in privateMessage) {
+            showAlertForBookingRequest(privateMessage.bookingRequest);
+          }
+        });
+        setDriverStatus(0); //available
+        sendLiveLocation();
+      });
+    }
+    //const myCallback = () => {
+    //  handleVisibilityChange(bookingReq);
+    //};
+    function showAlertForBookingRequest(bookingReq) {
+        //if (document.visibilityState === 'visible') {
+            showBookingAlert(bookingReq);
+        //} else {
+        //    document.addEventListener('visibilitychange', myCallback, bookingReq);
+        //}
+    }
+
+    function showBookingAlert(bookingReq) {
+        const bookingDetails = 'New booking: source longitude: ' + bookingReq.source.longitude + ', latitude: ' + bookingReq.source.latitude +  ' to destination longitude: ' + bookingReq.destination.longitude + ', latitude: ' + bookingReq.destination.latitude;
+        const acceptBooking = confirm(bookingDetails + "\nDo you want to accept this booking?");
+        if (acceptBooking) {
+            acceptBookingRequest(bookingReq);
+        } else {
+            alert("You have declined the booking.");
+        }
+    }
+
+    //function handleVisibilityChange(bookingReq) {
+    //    if (document.visibilityState === 'visible') {
+    //        showBookingAlert(bookingReq);
+    //        document.removeEventListener('visibilitychange', myCallback, bookingReq);
+    //    }
+    //}
+
+    function acceptBookingRequest(bookingReq) {
+        fetch(contextPath+'/ride/accept?rideId='+bookingReq.id+'&driverId='+driverId, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+          }).then(response => response.json()).then(data => {
+            console.log('Success:', data);
+            if (data.rideAcceptStatus) {
+                alert('Congrats, Ride has been assigned to you!');
+            } else {
+                alert('Sorry, You have not received the ride.'+data.errorMessage);
+            }
+          }).catch(error => {
+            console.error('Error:', error);
+            alert('Accepting booking request failed!');
+          });
+    }
+
+    function disconnect() {
+      if (driverId != null && driverId >= 0) {
+          setDriverStatus(3);   //off-work
+      }
+      if (stompClient != null) {
+        stompClient.disconnect();
+      }
+      setConnected(false);
+      stopTracking()
+      console.log("Disconnected");
+    }
+
+    function setConnected(connected) {
+      document.getElementById('location-form').style.visibility = connected ? 'visible' : 'hidden';
+      document.getElementById('locationForm').style.visibility = connected ? 'visible' : 'hidden';
+    }
+
+    function setDriverStatus(statusCode) {
+        fetch(contextPath+'/user/driver/status?&driverId='+driverId+'&status='+statusCode, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+          }).then(response => response.json()).then(data => {
+            console.log('Success:', data);
+            if (data.updateDriverStatus) {
+                alert('You have been set as '+(statusCode == 0 ? 'available.' : 'off-work.'));
+            } else {
+                alert('There was a error in setting the status. '+data.errorMessage);
+            }
+            return data.updateDriverStatus;
+          }).catch(error => {
+            console.error('Error:', error);
+            alert('Set Driver Status failed!');
+            return false;
+          });
+    }
+
+    function sendLocationUpdate(latitude, longitude) {
+      var locationUpdate = {
+        id: driverId,
+        latitude: latitude,
+        longitude: longitude
+      };
+      stompClient.send("/app/location", {}, JSON.stringify(locationUpdate));
+    }
+    // Function to send location updates (for testing)
+    document.getElementById('locationForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var latitude = document.getElementById('latitude').value;
+      var longitude = document.getElementById('longitude').value;
+      sendLocationUpdate(latitude, longitude);
+    });
+    // Function to get geolocation from browser
+    function sendLiveLocation() {
+        if (navigator.geolocation) {
+          locationInterval = setInterval(() => {
+            navigator.geolocation.getCurrentPosition(onGeoSuccess, onGeoError, {
+              enableHighAccuracy: true,
+              timeout: 60000,
+              maximumAge: 0
+            });
+          }, 2000);
+        } else {
+            alert("Your browser or device doesn't support Geolocation");
+        }
+    }
+    // If we have a successful location update
+    function onGeoSuccess(event) {
+      var latitude = event.coords.latitude;
+      var longitude = event.coords.longitude;
+      sendLocationUpdate(latitude, longitude);
+    }
+
+    function onGeoError(error) {
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          alert("User denied the request for Geolocation.");
+          break;
+        case error.POSITION_UNAVAILABLE:
+          alert("Location information is unavailable.");
+          break;
+        case error.TIMEOUT:
+          alert("The request to get user location timed out.");
+          break;
+        case error.UNKNOWN_ERROR:
+          alert("An unknown error occurred.");
+          break;
+      }
+    }
+
+    // Function to stop sending location updates
+    function stopTracking() {
+        if (locationInterval) {
+            clearInterval(locationInterval);
+            locationInterval = null;
+            console.log('Stopped sending live location updates');
+        }
+    }
+
+    document.getElementById('driverRegistrationForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var formData = new FormData(this);
+      var driverData = {};
+      formData.forEach(function(value, key) {
+        driverData[key] = value;
+      });
+      console.log('Driver Data:', driverData);
+      fetch(contextPath+'/user/driver/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(driverData)
+      }).then(response => response.json()).then(data => {
+        console.log('Success:', data);
+        if (data.userRegisterStatus) {
+            driverId = data.driverId;
+            alert('Registration successful!');
+            document.getElementById('driverRegistrationForm').style.visibility = 'hidden';
+            document.getElementById('connect').style.visibility = 'visible';
+            document.getElementById('disconnect').style.visibility = 'visible';
+        } else {
+            alert('Registration failed! '+data.errorMessage);
+        }
+      }).catch(error => {
+        console.error('Error:', error);
+        alert('Registration failed!');
+      });
+    });
+    // Show/hide manual location fields based on selected option
+    document.querySelectorAll('input[name="locationType"]').forEach(function(radio) {
+      radio.addEventListener('change', function() {
+        var manualFields = document.getElementById('locationForm');
+        if (this.value === 'manual') {
+          stopTracking()
+          manualFields.style.display = 'block';
+        } else {
+          manualFields.style.display = 'none';
+        }
+      });
+    });
+
+    // Initial check to set visibility of manual fields
+    document.getElementById('driverRegistrationForm').style.visibility = 'visible';
+    document.querySelector('input[name="locationType"]:checked').dispatchEvent(new Event('change'));
+    document.getElementById('connect').style.visibility = 'hidden';
+    document.getElementById('disconnect').style.visibility = 'hidden';
+    document.getElementById('driverRegistrationForm').style.visibility = 'visible';
+</script>
+</body>
+</html>

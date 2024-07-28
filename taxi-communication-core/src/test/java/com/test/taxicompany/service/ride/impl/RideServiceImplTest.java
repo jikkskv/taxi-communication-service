@@ -125,6 +125,60 @@ class RideServiceImplTest {
     }
 
     @Test
+    void startRide_bookedRide() {
+        RideOrder rideOrder = new RideOrder();
+        rideOrder.setRideStatus(RideStatus.BOOKED);
+        when(rideOrderRepository.findById(eq(1L))).thenReturn(Optional.of(rideOrder));
+        RideContext rideContext = Mockito.mock(RideContext.class);
+        when(rideContextHelper.getRideContext(eq(RideStatus.IN_PROGRESS), any(RideOrder.class))).thenReturn(rideContext);
+        assertTrue(rideService.startRide(1L, 1L));
+    }
+
+    @Test
+    void startRide_nonBookedRide() {
+        RideOrder rideOrder = new RideOrder();
+        rideOrder.setRideStatus(RideStatus.AVAILABLE);
+        when(rideOrderRepository.findById(eq(1L))).thenReturn(Optional.of(rideOrder));
+        assertFalse(rideService.startRide(1L, 1L));
+    }
+
+    @Test
+    void completeRide_InProgressRide() {
+        RideOrder rideOrder = new RideOrder();
+        rideOrder.setRideStatus(RideStatus.IN_PROGRESS);
+        when(rideOrderRepository.findById(eq(1L))).thenReturn(Optional.of(rideOrder));
+        RideContext rideContext = Mockito.mock(RideContext.class);
+        when(rideContextHelper.getRideContext(eq(RideStatus.COMPLETED), any(RideOrder.class))).thenReturn(rideContext);
+        assertTrue(rideService.completeRide(1L, 1L));
+    }
+
+    @Test
+    void completeRide_nonInProgressRide() {
+        RideOrder rideOrder = new RideOrder();
+        rideOrder.setRideStatus(RideStatus.AVAILABLE);
+        when(rideOrderRepository.findById(eq(1L))).thenReturn(Optional.of(rideOrder));
+        assertFalse(rideService.completeRide(1L, 1L));
+    }
+
+    @Test
+    void cancelRide_bookedRide() {
+        RideOrder rideOrder = new RideOrder();
+        rideOrder.setRideStatus(RideStatus.IN_PROGRESS);
+        when(rideOrderRepository.findById(eq(1L))).thenReturn(Optional.of(rideOrder));
+        RideContext rideContext = Mockito.mock(RideContext.class);
+        when(rideContextHelper.getRideContext(eq(RideStatus.CANCELLED), any(RideOrder.class))).thenReturn(rideContext);
+        assertTrue(rideService.cancelRide(1L));
+    }
+
+    @Test
+    void cancelRide_nonBookedRide() {
+        RideOrder rideOrder = new RideOrder();
+        rideOrder.setRideStatus(RideStatus.AVAILABLE);
+        when(rideOrderRepository.findById(eq(1L))).thenReturn(Optional.of(rideOrder));
+        assertFalse(rideService.cancelRide(1L));
+    }
+
+    @Test
     void getAllBookings() {
         DriverRideRelation driverRideRelation = new DriverRideRelation();
         Driver driver = new Driver();
