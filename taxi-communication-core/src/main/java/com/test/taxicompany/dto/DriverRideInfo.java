@@ -1,4 +1,8 @@
 package com.test.taxicompany.dto;
 
-public record DriverRideInfo(Long driverId, String driverName, String vehicleType, String rideStatus) {
+import com.test.taxicompany.location.CoOrdinate;
+
+public record DriverRideInfo(Long driverId, Long rideId, String driverName, String vehicleType, String vehicleNumber,
+                             CoOrdinate source,
+                             CoOrdinate destination, String rideStatus, double price) {
 }

@@ -1,6 +1,8 @@
 package com.test.taxicompany.ridestate;
 
+import com.test.taxicompany.repo.RideOrderRepository;
 import com.test.taxicompany.repo.RideStateLogRepository;
+import com.test.taxicompany.ride.RideOrder;
 import com.test.taxicompany.ride.RideStateLog;
 import com.test.taxicompany.ride.RideStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -14,8 +16,15 @@ public class RideInProgressState implements RideState {
     @Autowired
     private RideStateLogRepository rideStateLogRepository;
 
+    @Autowired
+    private RideOrderRepository rideOrderRepository;
+
     @Override
     public void handleState(RideContext rideContext) {
+        RideOrder rideOrder = rideContext.getRideOrder();
+        rideOrder.setRideStatus(RideStatus.IN_PROGRESS);
+        RideOrder savedRideOrder = this.rideOrderRepository.save(rideOrder);
+        rideContext.setRideOrder(savedRideOrder);
         addRideStateLog(rideContext);
     }
 

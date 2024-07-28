@@ -2,7 +2,9 @@ package com.test.taxicompany.service.ride.impl;
 
 import com.test.taxicompany.dto.DriverRideInfo;
 import com.test.taxicompany.dto.RideRequest;
+import com.test.taxicompany.exception.RideAcceptedException;
 import com.test.taxicompany.location.CoOrdinate;
+import com.test.taxicompany.observer.DriverObservable;
 import com.test.taxicompany.queue.MessageQueueService;
 import com.test.taxicompany.repo.DriverRepository;
 import com.test.taxicompany.repo.DriverRideRelationRepository;
@@ -39,6 +41,9 @@ class RideServiceImplTest {
 
     @Mock
     private DriverRepository driverRepository;
+
+    @Mock
+    private DriverObservable driverObservable;
 
     @Mock
     private DriverRideRelationRepository driverRideRelationRepository;
@@ -84,7 +89,7 @@ class RideServiceImplTest {
     @Test
     void acceptRide_invalidRideRequestId() {
         when(rideOrderRepository.findById(eq(1L))).thenReturn(Optional.empty());
-        assertFalse(rideService.acceptRide(1L, 1L));
+        assertThrows(Exception.class, ()->rideService.acceptRide(1L, 1L));
         verify(driverRideRelationRepository, times(0)).save(any(DriverRideRelation.class));
     }
 
@@ -92,17 +97,17 @@ class RideServiceImplTest {
     void acceptRide_invalidDriverId() {
         when(rideOrderRepository.findById(eq(1L))).thenReturn(Optional.of(new RideOrder()));
         when(driverRepository.findById(eq(1L))).thenReturn(Optional.empty());
-        assertFalse(rideService.acceptRide(1L, 1L));
+        assertThrows(RideAcceptedException.class, ()->rideService.acceptRide(1L, 1L));
         verify(driverRideRelationRepository, times(0)).save(any(DriverRideRelation.class));
     }
 
     @Test
     void acceptRide_alreadyBookedRideStatus() {
         RideOrder rideOrder = new RideOrder();
-        rideOrder.setRideStatus(RideStatus.ACCEPTED);
+        rideOrder.setRideStatus(RideStatus.BOOKED);
         when(rideOrderRepository.findById(eq(1L))).thenReturn(Optional.of(rideOrder));
         when(driverRepository.findById(eq(1L))).thenReturn(Optional.of(new Driver()));
-        assertFalse(rideService.acceptRide(1L, 1L));
+        assertThrows(RideAcceptedException.class, ()->rideService.acceptRide(1L, 1L));
         verify(driverRideRelationRepository, times(0)).save(any(DriverRideRelation.class));
     }
 
@@ -113,7 +118,8 @@ class RideServiceImplTest {
         when(rideOrderRepository.findById(eq(1L))).thenReturn(Optional.of(rideOrder));
         when(driverRepository.findById(eq(1L))).thenReturn(Optional.of(new Driver()));
         RideContext rideContext = Mockito.mock(RideContext.class);
-        when(rideContextHelper.getRideContext(eq(RideStatus.ACCEPTED), any(RideOrder.class))).thenReturn(rideContext);
+        when(rideContextHelper.getRideContext(eq(RideStatus.BOOKED), any(RideOrder.class))).thenReturn(rideContext);
+        when(driverObservable.getDriver(eq(1L))).thenReturn(new Driver());
         assertTrue(rideService.acceptRide(1L, 1L));
         verify(driverRideRelationRepository, times(1)).save(any(DriverRideRelation.class));
     }

@@ -1,6 +1,7 @@
 package com.test.taxicompany.service.user.impl;
 
 import com.test.taxicompany.dto.DriverRegisterRequest;
+import com.test.taxicompany.exception.UserRegisterException;
 import com.test.taxicompany.observer.DriverObservable;
 import com.test.taxicompany.observer.DriverObserver;
 import com.test.taxicompany.repo.DriverRepository;
@@ -39,7 +40,7 @@ class UserRegistrationServiceImplTest {
     void registerDriver_invalidEmailId() {
         DriverRegisterRequest registerRequest = new DriverRegisterRequest("name", "email", "password", "12345678", "licenseNumber",
                 "vehicleNumber", "vehicleType", 1D);
-        assertEquals(-1L, userRegistrationService.registerDriver(registerRequest));
+        assertThrows(UserRegisterException.class, ()->userRegistrationService.registerDriver(registerRequest));
         verify(this.driverRepository, times(0)).saveAndFlush(any(Driver.class));
         verify(driverObservable, times(0)).addObserver(any(DriverObserver.class));
     }
@@ -70,7 +71,7 @@ class UserRegistrationServiceImplTest {
     void getAllDrivers() {
         Driver driver = new Driver();
         driver.setId(123456L);
-        when(driverObservable.getObservers()).thenReturn(Collections.singletonList(new DriverObserver(driver, simpMessagingTemplate)));
+        when(driverRepository.findAll()).thenReturn(Collections.singletonList(new Driver()));
         List<Driver> driverList = userRegistrationService.getAllDrivers();
         assertNotNull(driverList);
         assertFalse(driverList.isEmpty());

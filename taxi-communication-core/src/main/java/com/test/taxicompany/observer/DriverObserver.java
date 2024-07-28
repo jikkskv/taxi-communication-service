@@ -3,6 +3,8 @@ package com.test.taxicompany.observer;
 import com.test.taxicompany.user.Driver;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
+import java.util.function.Predicate;
+
 public class DriverObserver implements IDriverObserver {
 
     private Driver driver;
@@ -24,5 +26,12 @@ public class DriverObserver implements IDriverObserver {
     @Override
     public void sendMessage(String message) {
         this.simpMessagingTemplate.convertAndSendToUser(driverName, "/private/driver/message", message);
+    }
+
+    @Override
+    public void sendMessage(String message, Predicate<Driver> predicate) {
+        if (predicate.test(driver)) {
+            this.simpMessagingTemplate.convertAndSendToUser(driverName, "/private/driver/message", message);
+        }
     }
 }

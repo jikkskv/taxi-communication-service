@@ -4,7 +4,6 @@ import com.test.taxicompany.repo.RideOrderRepository;
 import com.test.taxicompany.repo.RideStateLogRepository;
 import com.test.taxicompany.ride.RideOrder;
 import com.test.taxicompany.ride.RideStateLog;
-import com.test.taxicompany.ride.RideStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

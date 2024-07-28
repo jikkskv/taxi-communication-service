@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.test.taxicompany.dto.DriverRideInfo;
 import com.test.taxicompany.dto.RideRequest;
+import com.test.taxicompany.exception.BizErrorCodeEnum;
+import com.test.taxicompany.exception.RideAcceptedException;
+import com.test.taxicompany.observer.DriverObservable;
 import com.test.taxicompany.queue.MessageQueueService;
 import com.test.taxicompany.repo.DriverRepository;
 import com.test.taxicompany.repo.DriverRideRelationRepository;
@@ -50,6 +53,9 @@ public class RideServiceImpl implements RideService {
     private DriverRepository driverRepository;
 
     @Autowired
+    private DriverObservable driverObservable;
+
+    @Autowired
     private RideOrderRepository rideOrderRepository;
 
     @Autowired
@@ -86,22 +92,26 @@ public class RideServiceImpl implements RideService {
             RideOrder rideOrder = getLockedRideOrder(rideId);
 
             Driver driver = driverRepository.findById(driverId)
-                    .orElseThrow(() -> new RuntimeException("Driver not found"));
+                    .orElseThrow(() -> new RideAcceptedException(BizErrorCodeEnum.INVALID_DRIVER));
 
             if (!RideStatus.AVAILABLE.equals(rideOrder.getRideStatus())) {
-                throw new RuntimeException("Ride request already accepted or cancelled");
+                throw new RideAcceptedException(BizErrorCodeEnum.RIDE_ALREADY_ACCEPTED);
             }
-            RideContext rideContext = rideContextHelper.getRideContext(RideStatus.ACCEPTED, rideOrder);
+            RideContext rideContext = rideContextHelper.getRideContext(RideStatus.BOOKED, rideOrder);
             rideContext.handleNewState();
             driver.setAvailabilityStatus(AvailabilityStatus.ON_CALL);
             DriverRideRelation relation = getDriverRideRelation(rideOrder, driver);
             driverRideRelationRepository.save(relation);
             driverRepository.save(driver);
+            driverObservable.getDriver(driverId).setAvailabilityStatus(AvailabilityStatus.ON_CALL);
             return true;
-        } catch (RuntimeException ex) {
+        } catch (RideAcceptedException ex) {
             log.error("Error occurred in accepting rideRequest for rideId: {}, and for driverId: {}", rideId, driverId, ex);
+            throw ex;
+        } catch (Exception ex) {
+            log.error("Unknown error Error occurred in accepting rideRequest for rideId: {}, and for driverId: {}", rideId, driverId, ex);
+            throw new RideAcceptedException(BizErrorCodeEnum.SYSTEM_ERROR);
         }
-        return false;
     }
 
     @Override
@@ -109,9 +119,8 @@ public class RideServiceImpl implements RideService {
         try {
             RideOrder rideOrder = rideOrderRepository.findById(rideId)
                     .orElseThrow(() -> new RuntimeException("Ride not found"));
-            ;
 
-            if (!RideStatus.ACCEPTED.equals(rideOrder.getRideStatus())) {
+            if (!RideStatus.BOOKED.equals(rideOrder.getRideStatus())) {
                 throw new RuntimeException("Ride request not yet accepted.");
             }
             RideContext rideContext = rideContextHelper.getRideContext(RideStatus.IN_PROGRESS, rideOrder);
@@ -128,7 +137,6 @@ public class RideServiceImpl implements RideService {
         try {
             RideOrder rideOrder = rideOrderRepository.findById(rideId)
                     .orElseThrow(() -> new RuntimeException("Ride not found"));
-            ;
 
             if (!RideStatus.IN_PROGRESS.equals(rideOrder.getRideStatus())) {
                 throw new RuntimeException("Ride request not in progress state");
@@ -168,7 +176,17 @@ public class RideServiceImpl implements RideService {
         return rideRelations.stream().map(e -> {
             Driver driver = e.getDriver();
             RideOrder rideOrder = e.getRideOrder();
-            DriverRideInfo rideInfo = new DriverRideInfo(driver.getId(), driver.getName(), driver.getVehicleType().toString(), rideOrder.getRideStatus().toString());
+            DriverRideInfo rideInfo = new DriverRideInfo(
+                    driver.getId(),
+                    rideOrder.getId(),
+                    driver.getName(),
+                    driver.getVehicleType().toString(),
+                    driver.getVehicleNumber(),
+                    rideOrder.getSource(),
+                    rideOrder.getDestination(),
+                    rideOrder.getRideStatus().toString(),
+                    rideOrder.getPrice()
+            );
             return rideInfo;
         }).collect(Collectors.toList());
     }

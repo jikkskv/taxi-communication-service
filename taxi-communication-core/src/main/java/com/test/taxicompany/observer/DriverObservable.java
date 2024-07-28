@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Predicate;
 
 @Component
 public class DriverObservable {
@@ -26,6 +27,10 @@ public class DriverObservable {
 
     public void broadCastMessage(String message) {
         observers.values().forEach(e -> e.sendMessage(message));
+    }
+
+    public void broadCastMessage(String message, Predicate<Driver> predicate) {
+        observers.values().forEach(e -> e.sendMessage(message, predicate));
     }
 
     public void sendMessageToDestination(long driverId, String message) {

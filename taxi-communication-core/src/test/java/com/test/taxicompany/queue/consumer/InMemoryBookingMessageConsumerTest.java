@@ -9,6 +9,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.function.Predicate;
+
 import static org.mockito.Mockito.*;
 
 @Slf4j
@@ -30,6 +32,6 @@ class InMemoryBookingMessageConsumerTest {
         when(messageQueueService.hasMessages(anyString())).thenReturn(true);
         when(messageQueueService.receiveMessage(anyString())).thenReturn(messageStr);
         messageConsumer.processQueue();
-        verify(driverObservable, times(1)).broadCastMessage(eq(messageStr));
+        verify(driverObservable, times(1)).broadCastMessage(eq(messageStr), any(Predicate.class));
     }
 }

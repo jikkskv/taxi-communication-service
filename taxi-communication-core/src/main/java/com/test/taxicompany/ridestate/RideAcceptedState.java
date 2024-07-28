@@ -22,7 +22,7 @@ public class RideAcceptedState implements RideState {
     @Override
     public void handleState(RideContext rideContext) {
         RideOrder rideOrder = rideContext.getRideOrder();
-        rideOrder.setRideStatus(RideStatus.ACCEPTED);
+        rideOrder.setRideStatus(RideStatus.BOOKED);
         RideOrder savedRideOrder = this.rideOrderRepository.save(rideOrder);
         rideContext.setRideOrder(savedRideOrder);
         addRideStateLog(rideContext);
@@ -41,6 +41,6 @@ public class RideAcceptedState implements RideState {
 
     @Override
     public RideStatus getState() {
-        return RideStatus.ACCEPTED;
+        return RideStatus.BOOKED;
     }
 }
